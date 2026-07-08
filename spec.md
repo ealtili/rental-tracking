@@ -231,3 +231,22 @@ The data persistence is split into global configurations and isolated files per 
 - **System-Generated Templates**:
   - Out-of-the-box system-generated notification templates provided in both **Turkish** (default for Turkish tenants) and **English**.
   - Landlords can select the tenant's preferred language, preview the text, and fully customize/override the templates.
+
+---
+
+## 🌳 Git & Worktree Development Workflow
+
+The source code is managed via a private repository on GitHub at `https://github.com/ealtili/rental-tracking`.
+
+For parallel development, developers use Git worktrees. Feature development takes place in separate worktree directories:
+```bash
+git worktree add ../feature-name -b feature-name
+```
+After completing the changes in the worktree, the branch is pushed to GitHub:
+```bash
+git push origin feature-name
+```
+Once the feature is merged into `main`, the worktree directory is removed:
+```bash
+git worktree remove ../feature-name
+```

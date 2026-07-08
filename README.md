@@ -66,3 +66,19 @@ If you are using VS Code and have the **Dev Containers** extension installed:
 - **Isolated Namespaces**: All SQL-like JSON database records are isolated by checking the `x-landlord-id` request header. A landlord can never read or write another landlord's data.
 - **Non-Privileged User**: The production Docker image uses `USER node` to prevent root-privilege escalation inside the container.
 - **Defensive Scraper**: The Cheerio web scraper will catch WAF / Cloudflare blocks gracefully, logging warnings and prompting the user in the UI to input rates manually rather than throwing unhandled exceptions.
+
+---
+
+## 🌳 Git & Worktree Workflow
+
+This project is hosted privately at `https://github.com/ealtili/rental-tracking`.
+
+We follow a Git worktree-based workflow for parallel feature development to prevent configuration or running container state conflicts. To work on a feature, add a new worktree directory:
+```bash
+git worktree add ../feature-name -b feature-name
+```
+Work in the `../feature-name` directory, commit, push, and clean up once merged:
+```bash
+git worktree remove ../feature-name
+git branch -d feature-name
+```
