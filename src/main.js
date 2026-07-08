@@ -638,9 +638,12 @@ function drawRentTrendChart(canvas, data, currency) {
   
   ctx.clearRect(0, 0, width, height);
   
-  const months = Object.keys(data).sort();
+  // Show only the most recent 6 months to prevent label overlapping and clutter
+  const sortedMonths = Object.keys(data).sort();
+  const months = sortedMonths.slice(-6);
+  
   if (months.length === 0) {
-    ctx.fillStyle = 'var(--text-secondary, #8e9093)';
+    ctx.fillStyle = '#9ca3af';
     ctx.font = '13px Outfit, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -648,9 +651,14 @@ function drawRentTrendChart(canvas, data, currency) {
     return;
   }
   
-  const paddingLeft = 55;
-  const paddingRight = 35; // Added room for Y-axis percentage labels
-  const paddingTop = 25;
+  // Dynamic theme colors resolving (canvas context does not support CSS variables directly)
+  const isLight = document.documentElement.classList.contains('light');
+  const labelColor = isLight ? '#4b5563' : '#e5e7eb'; // Clean light/dark mode readable labels
+  const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.07)';
+  
+  const paddingLeft = 70; // Expanded to fit large currency labels (e.g. 374,317 TL)
+  const paddingRight = 45; // Expanded to fit percentage values on the right
+  const paddingTop = 30;
   const paddingBottom = 30;
   
   const chartWidth = width - paddingLeft - paddingRight;
@@ -664,8 +672,8 @@ function drawRentTrendChart(canvas, data, currency) {
   maxVal = maxVal * 1.1; // 10% ceiling padding
   
   // Y-axis gridlines and labels (left side - currency)
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.fillStyle = 'var(--text-secondary, #8e9093)';
+  ctx.strokeStyle = gridColor;
+  ctx.fillStyle = labelColor;
   ctx.font = '10px Outfit, sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
@@ -703,7 +711,7 @@ function drawRentTrendChart(canvas, data, currency) {
     const xCenter = paddingLeft + colWidth * idx + colWidth / 2;
     
     // Month label
-    ctx.fillStyle = 'var(--text-secondary, #8e9093)';
+    ctx.fillStyle = labelColor;
     ctx.fillText(m, xCenter, paddingTop + chartHeight + 8);
     
     // Draw shadows for bars
@@ -742,13 +750,15 @@ function drawRentTrendChart(canvas, data, currency) {
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
-    // Save points for collection rate line overlay
-    const rate = data[m].expected > 0 ? Math.min(100, (data[m].received / data[m].expected) * 100) : 100;
-    const yLine = paddingTop + chartHeight - (rate / 100) * chartHeight;
-    linePoints.push({ x: xCenter, y: yLine, rate: Math.round(rate) });
+    // Save points for collection rate line overlay (only show node/rate if rate > 0 to keep UI clean)
+    const rate = data[m].expected > 0 ? Math.min(100, (data[m].received / data[m].expected) * 100) : 0;
+    if (rate > 0) {
+      const yLine = paddingTop + chartHeight - (rate / 100) * chartHeight;
+      linePoints.push({ x: xCenter, y: yLine, rate: Math.round(rate) });
+    }
   });
 
-  // 3. Draw Collection Rate Trend Line overlay
+  // 3. Draw Collection Rate Trend Line overlay (connect nodes dynamically)
   if (linePoints.length > 0) {
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 2.5;
