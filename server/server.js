@@ -1073,6 +1073,13 @@ app.post('/api/leases', authenticateLandlord, (req, res) => {
     return res.status(400).json({ error: 'Missing lease parameters' });
   }
 
+  if (endDate && startDate === endDate) {
+    return res.status(400).json({ error: 'Contract End Date must be different from Contract Start Date' });
+  }
+  if (endDate && new Date(endDate) <= new Date(startDate)) {
+    return res.status(400).json({ error: 'Contract End Date must be after the Contract Start Date' });
+  }
+
   const db = readLandlordDb(req.landlord.id);
   
   // Ensure unit exists in landlord DB
@@ -1142,6 +1149,15 @@ app.put('/api/leases/:id', authenticateLandlord, (req, res) => {
   const db = readLandlordDb(req.landlord.id);
   const lease = db.leases.find(l => l.id === req.params.id);
   if (!lease) return res.status(404).json({ error: 'Lease not found' });
+
+  const checkStartDate = startDate !== undefined ? startDate : lease.startDate;
+  const checkEndDate = endDate !== undefined ? endDate : lease.endDate;
+  if (checkEndDate && checkStartDate === checkEndDate) {
+    return res.status(400).json({ error: 'Contract End Date must be different from Contract Start Date' });
+  }
+  if (checkEndDate && new Date(checkEndDate) <= new Date(checkStartDate)) {
+    return res.status(400).json({ error: 'Contract End Date must be after the Contract Start Date' });
+  }
 
   // Update simple fields
   if (startDate !== undefined) lease.startDate = startDate;

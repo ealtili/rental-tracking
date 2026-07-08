@@ -475,6 +475,22 @@ async function renderDashboard(container) {
       </div>
     </div>
 
+    <!-- Charts Visualization Grid -->
+    <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
+      <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column;">
+        <h3 style="font-size: 16px; margin-bottom: 16px; color: var(--text-primary);" data-i18n="dash_rent_trend">Rent Collection Trend (Expected vs Received)</h3>
+        <div style="flex-grow: 1; min-height: 200px; position: relative;">
+          <canvas id="rentTrendChart" style="width: 100%; height: 200px; display: block;"></canvas>
+        </div>
+      </div>
+      <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; align-items: center;">
+        <h3 style="font-size: 16px; margin-bottom: 16px; width: 100%; color: var(--text-primary);" data-i18n="dash_portfolio_split">Portfolio Occupancy Status</h3>
+        <div style="flex-grow: 1; min-height: 200px; position: relative; width: 100%; display: flex; justify-content: center; align-items: center;">
+          <canvas id="portfolioChart" style="width: 100%; height: 200px; max-width: 200px; display: block;"></canvas>
+        </div>
+      </div>
+    </div>
+
     <div class="glass-card" style="margin-bottom: 24px;">
       <h2 style="font-size: 18px; margin-bottom: 16px;" data-i18n="dash_recent_trans">Recent Rent Collections</h2>
       <div class="table-container">
@@ -495,6 +511,9 @@ async function renderDashboard(container) {
     </div>
   `;
 
+  // Dynamically apply translations to the injected elements
+  initLang();
+
   try {
     const properties = await apiFetch('/properties');
     const leases = await apiFetch('/leases');
@@ -502,6 +521,14 @@ async function renderDashboard(container) {
     let expectedSum = 0;
     let receivedSum = 0;
     let paymentsList = [];
+    const monthlyData = {};
+
+    let totalUnits = 0;
+    properties.forEach(p => {
+      totalUnits += (p.units || []).length;
+    });
+    const occupiedUnits = leases.filter(l => l.status === 'Active').length;
+    const vacantUnits = Math.max(0, totalUnits - occupiedUnits);
 
     // Loop through each lease and load ledger details to compile calculations
     for (const lease of leases) {
@@ -525,14 +552,37 @@ async function renderDashboard(container) {
           period: p.description.slice(-7)
         });
       });
+
+      // Populate monthly stats
+      for (const entry of ledger.entries) {
+        const monthKey = entry.date.slice(0, 7); // e.g. "2026-04"
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = { expected: 0, received: 0 };
+        }
+        if (entry.type === 'charge') {
+          monthlyData[monthKey].expected += entry.amount;
+        } else if (entry.type === 'payment') {
+          monthlyData[monthKey].received += entry.amount;
+        }
+      }
     }
 
-    // Format currency symbol
-    const cur = 'TL';
+    // Format currency symbol dynamically
+    const cur = leases.length > 0 ? (leases[0].rentSchedule?.[0]?.currency || 'TL') : 'TL';
     document.getElementById('kpi-received').innerText = `${receivedSum.toLocaleString()} ${cur}`;
     document.getElementById('kpi-expected').innerText = `${expectedSum.toLocaleString()} ${cur}`;
     document.getElementById('kpi-outstanding').innerText = `${(expectedSum - receivedSum).toLocaleString()} ${cur}`;
     document.getElementById('kpi-properties').innerText = properties.length;
+
+    // Draw Visualizations
+    const trendCanvas = document.getElementById('rentTrendChart');
+    if (trendCanvas) {
+      drawRentTrendChart(trendCanvas, monthlyData, cur);
+    }
+    const portfolioCanvas = document.getElementById('portfolioChart');
+    if (portfolioCanvas) {
+      drawPortfolioDoughnutChart(portfolioCanvas, occupiedUnits, vacantUnits);
+    }
 
     // Load recent payments table
     paymentsList.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -550,9 +600,191 @@ async function renderDashboard(container) {
         </tr>
       `).join('');
     }
+
+    // Re-apply language translation to any late dynamic strings
+    initLang();
   } catch (err) {
     console.error('Dashboard load failed:', err);
   }
+}
+
+// Chart Helper: Rent Collection Trend Chart (Custom HTML5 Canvas rendering)
+function drawRentTrendChart(canvas, data, currency) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  
+  const width = rect.width;
+  const height = rect.height;
+  
+  ctx.clearRect(0, 0, width, height);
+  
+  const months = Object.keys(data).sort();
+  if (months.length === 0) {
+    ctx.fillStyle = 'var(--text-secondary, #8e9093)';
+    ctx.font = '13px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('No historical trend data available', width / 2, height / 2);
+    return;
+  }
+  
+  const paddingLeft = 55;
+  const paddingRight = 20;
+  const paddingTop = 20;
+  const paddingBottom = 30;
+  
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+  
+  let maxVal = 0;
+  months.forEach(m => {
+    maxVal = Math.max(maxVal, data[m].expected, data[m].received);
+  });
+  if (maxVal === 0) maxVal = 1000;
+  maxVal = maxVal * 1.1; // 10% ceiling padding
+  
+  // Y-axis gridlines and labels
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.fillStyle = 'var(--text-secondary, #8e9093)';
+  ctx.font = '10px Outfit, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  
+  const gridSteps = 4;
+  for (let i = 0; i <= gridSteps; i++) {
+    const val = (maxVal / gridSteps) * i;
+    const y = paddingTop + chartHeight - (chartHeight / gridSteps) * i;
+    
+    ctx.beginPath();
+    ctx.moveTo(paddingLeft, y);
+    ctx.lineTo(width - paddingRight, y);
+    ctx.stroke();
+    
+    ctx.fillText(`${Math.round(val).toLocaleString()} ${currency}`, paddingLeft - 8, y);
+  }
+  
+  // X-axis & bars
+  const colWidth = chartWidth / months.length;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  
+  months.forEach((m, idx) => {
+    const xCenter = paddingLeft + colWidth * idx + colWidth / 2;
+    
+    ctx.fillStyle = 'var(--text-secondary, #8e9093)';
+    ctx.fillText(m, xCenter, paddingTop + chartHeight + 8);
+    
+    // 1. Expected bar
+    const expHeight = (data[m].expected / maxVal) * chartHeight;
+    const expX = xCenter - 14;
+    const expY = paddingTop + chartHeight - expHeight;
+    if (expHeight > 0) {
+      const expGrad = ctx.createLinearGradient(expX, expY, expX, paddingTop + chartHeight);
+      expGrad.addColorStop(0, '#818cf8');
+      expGrad.addColorStop(1, '#4f46e5');
+      ctx.fillStyle = expGrad;
+      drawRoundedRect(ctx, expX, expY, 10, expHeight, 3);
+    }
+    
+    // 2. Received bar
+    const recHeight = (data[m].received / maxVal) * chartHeight;
+    const recX = xCenter + 4;
+    const recY = paddingTop + chartHeight - recHeight;
+    if (recHeight > 0) {
+      const recGrad = ctx.createLinearGradient(recX, recY, recX, paddingTop + chartHeight);
+      recGrad.addColorStop(0, '#34d399');
+      recGrad.addColorStop(1, '#059669');
+      ctx.fillStyle = recGrad;
+      drawRoundedRect(ctx, recX, recY, 10, recHeight, 3);
+    }
+  });
+}
+
+// Chart Helper: Portfolio occupancy doughnut
+function drawPortfolioDoughnutChart(canvas, occupied, vacant) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  
+  const width = rect.width;
+  const height = rect.height;
+  
+  ctx.clearRect(0, 0, width, height);
+  
+  const total = occupied + vacant;
+  if (total === 0) {
+    ctx.fillStyle = 'var(--text-secondary, #8e9093)';
+    ctx.font = '13px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('No property portfolio details', width / 2, height / 2);
+    return;
+  }
+  
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.min(width, height) / 2 - 12;
+  const innerRadius = radius * 0.65;
+  
+  const occupiedAngle = (occupied / total) * 2 * Math.PI;
+  const vacantAngle = (vacant / total) * 2 * Math.PI;
+  
+  // Draw Occupied slice
+  if (occupied > 0) {
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + occupiedAngle, false);
+    ctx.arc(centerX, centerY, innerRadius, -Math.PI / 2 + occupiedAngle, -Math.PI / 2, true);
+    ctx.closePath();
+    const occGrad = ctx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, radius);
+    occGrad.addColorStop(0, '#6366f1');
+    occGrad.addColorStop(1, '#4f46e5');
+    ctx.fillStyle = occGrad;
+    ctx.fill();
+  }
+  
+  // Draw Vacant slice
+  if (vacant > 0) {
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, -Math.PI / 2 + occupiedAngle, -Math.PI / 2 + occupiedAngle + vacantAngle, false);
+    ctx.arc(centerX, centerY, innerRadius, -Math.PI / 2 + occupiedAngle + vacantAngle, -Math.PI / 2 + occupiedAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.fill();
+  }
+  
+  // Text inside the doughnut
+  ctx.fillStyle = 'var(--text-primary, #ffffff)';
+  ctx.font = 'bold 22px Outfit, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const pct = Math.round((occupied / total) * 100);
+  ctx.fillText(`${pct}%`, centerX, centerY - 6);
+  
+  ctx.fillStyle = 'var(--text-secondary, #8e9093)';
+  ctx.font = '9px Outfit, sans-serif';
+  const labelText = translations[state.lang]['dash_occupied'] || 'OCCUPIED';
+  ctx.fillText(labelText, centerX, centerY + 12);
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  if (height <= 0) return;
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height);
+  ctx.lineTo(x, y + height);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
 }
 
 // --- VIEW: PROPERTIES ---
@@ -1586,6 +1818,12 @@ async function openAddLeaseModal() {
       submitBtn.setAttribute('disabled', 'true');
 
       try {
+        if (endDate && startDate === endDate) {
+          throw new Error('Contract End Date must be different from Contract Start Date');
+        }
+        if (endDate && new Date(endDate) <= new Date(startDate)) {
+          throw new Error('Contract End Date must be after the Contract Start Date');
+        }
         // If new tenant is selected, register tenant profile first!
         if (tenantId === 'new') {
           const tName = document.getElementById('new-tenant-name').value;
@@ -1745,6 +1983,12 @@ async function openEditLeaseModal(leaseId) {
       submitBtn.setAttribute('disabled', 'true');
 
       try {
+        if (endDate && startDate === endDate) {
+          throw new Error('Contract End Date must be different from Contract Start Date');
+        }
+        if (endDate && new Date(endDate) <= new Date(startDate)) {
+          throw new Error('Contract End Date must be after the Contract Start Date');
+        }
         await apiFetch(`/leases/${leaseId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

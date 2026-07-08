@@ -37,6 +37,10 @@ export const translations = {
     dash_tenant: "Tenant",
     dash_amount: "Amount",
     dash_period: "Period",
+    dash_rent_trend: "Rent Collection Trend (Expected vs Received)",
+    dash_portfolio_split: "Portfolio Occupancy Status",
+    dash_occupied: "OCCUPIED",
+    dash_vacant: "VACANT",
     
     // Properties
     prop_title: "My Properties & Units",
@@ -227,6 +231,10 @@ export const translations = {
     dash_tenant: "Kiracı",
     dash_amount: "Tutar",
     dash_period: "Dönem",
+    dash_rent_trend: "Kira Tahsilat Eğilimi (Beklenen vs Alınan)",
+    dash_portfolio_split: "Portföy Doluluk Durumu",
+    dash_occupied: "DOLU",
+    dash_vacant: "BOŞ",
     
     // Properties
     prop_title: "Mülklerim ve Bölümler",
