@@ -1,0 +1,21 @@
+{
+  "name": "Rental Tracking Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile.dev",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "forwardPorts": [5000, 5173],
+  "postCreateCommand": "npm install",
+  "remoteUser": "node"
+}

@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rental-tracking-app:latest
+    container_name: rental_tracking_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - db-data:/app/data
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  db-data:
+    name: rental_tracking_db_data

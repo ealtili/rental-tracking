@@ -1,0 +1,27 @@
+{
+  "name": "rental-tracking",
+  "version": "1.0.0",
+  "description": "Multi-landlord Rent Tracking & Reconciliation Application",
+  "main": "server/server.js",
+  "scripts": {
+    "init-db": "node server/init-db.js",
+    "dev": "concurrently \"nodemon server/server.js\" \"vite\"",
+    "build": "node server/generate-templates.js && vite build",
+    "preview": "vite preview",
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.13",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.0",
+    "vite": "^5.2.11"
+  },
+  "private": true
+}

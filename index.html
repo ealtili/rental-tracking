@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rental Tracker</title>
+  <!-- Google Font: Outfit for a premium, clean look -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+
+  <!-- Mobile Top Navigation Bar -->
+  <div class="mobile-top-bar" id="mobile-top-bar" style="display: none;">
+    <button class="sidebar-toggle" id="menu-toggle">☰</button>
+    <div class="mobile-logo">Rental Tracker</div>
+    <div style="flex: 1;"></div>
+    <!-- Global Quick Toggles -->
+    <div class="header-actions">
+      <div class="lang-switch-toggle lang-en" id="lang-toggle-mobile">
+        <div class="lang-switch-slider"></div>
+        <span class="lang-switch-label EN">EN</span>
+        <span class="lang-switch-label TR">TR</span>
+      </div>
+      <button class="switcher-btn" id="theme-toggle-mobile">◐</button>
+    </div>
+  </div>
+
+  <!-- AUTH LAYER (Hidden when logged in) -->
+  <div class="auth-container" id="auth-view">
+    <div class="glass-card auth-card">
+      <div class="auth-header">
+        <h1 id="auth-title" data-i18n="login_title">Landlord Login</h1>
+        <p style="color: var(--text-secondary); font-size: 14px;" id="auth-subtitle">Manage portfolios & match bank records</p>
+      </div>
+      
+      <div id="auth-error-msg" class="badge badge-danger" style="display: none; width: 100%; justify-content: center; padding: 10px; margin-bottom: 16px; text-transform: none; border-radius: 8px;"></div>
+      
+      <form id="auth-form" onsubmit="return false;">
+        <div class="form-group" id="group-name" style="display: none;">
+          <label for="reg-name" data-i18n="name_label">Full Name</label>
+          <input type="text" id="reg-name" placeholder="Alice Landlord">
+        </div>
+        
+        <div class="form-group">
+          <label for="login-email" data-i18n="email_label">Email Address</label>
+          <input type="email" id="login-email" required placeholder="landlord1@example.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="login-password" data-i18n="password_label">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••">
+        </div>
+        
+        <div class="form-group" id="group-phone" style="display: none;">
+          <label for="reg-phone" data-i18n="phone_label">Phone Number</label>
+          <input type="text" id="reg-phone" placeholder="+90 532...">
+        </div>
+        
+        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" id="auth-submit-btn" type="submit" data-i18n="btn_login">Sign In</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="#" style="color: var(--accent-color); font-size: 14px; text-decoration: none; font-weight: 500;" id="auth-toggle-link" data-i18n="link_to_signup">Don't have an account? Sign up</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SHELL LAYER (Hidden when logged out) -->
+  <div class="app-shell" id="app-view" style="display: none;">
+    <!-- Sidebar -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-logo">
+        <span style="font-size: 24px;">🏢</span>
+        <span>Rental Tracker</span>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-view="dashboard" data-i18n="nav_dashboard">Dashboard</a>
+        <a class="nav-item" data-view="properties" data-i18n="nav_properties">Properties</a>
+        <a class="nav-item" data-view="leases" data-i18n="nav_leases">Leases</a>
+        <a class="nav-item" data-view="reconcile" data-i18n="nav_reconcile">Reconcile Bank</a>
+        <a class="nav-item" data-view="notifications" data-i18n="nav_notifications">Notifications Queue</a>
+        <a class="nav-item" data-view="settings" data-i18n="nav_settings">Settings</a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="toggle-wrapper" style="padding: 0 8px;">
+          <div class="lang-switch-toggle lang-en" id="lang-toggle-desktop" style="flex: none;">
+            <div class="lang-switch-slider"></div>
+            <span class="lang-switch-label EN">EN</span>
+            <span class="lang-switch-label TR">TR</span>
+          </div>
+          <button class="switcher-btn" id="theme-toggle-desktop" style="padding: 8px 14px;">◐</button>
+        </div>
+        <a class="nav-item" id="logout-btn" style="border-left: none; background: rgba(239, 68, 68, 0.1); color: var(--danger-color);" data-i18n="nav_logout">Logout</a>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <main class="app-main" id="app-main">
+      <!-- Dynamic Views injected here by main.js -->
+      <div id="view-content"></div>
+    </main>
+  </div>
+
+  <!-- Modals Container Overlay (Shared) -->
+  <div class="modal-overlay" id="modal-overlay" style="display: none;">
+    <div class="glass-card modal-content" id="modal-body"></div>
+  </div>
+
+  <!-- Load App Script -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

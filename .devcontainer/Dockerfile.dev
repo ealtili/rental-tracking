@@ -1,0 +1,10 @@
+FROM node:20-alpine
+
+# Install git, bash, and openssh (required for VS Code remote development)
+RUN apk add --no-cache git bash openssh-client
+
+# Set working directory
+WORKDIR /workspace
+
+# Set terminal permissions
+ENV SHELL=/bin/bash

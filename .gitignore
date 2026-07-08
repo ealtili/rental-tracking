@@ -1,0 +1,9 @@
+node_modules/
+dist/
+uploads/
+public/templates/*.xlsx
+data/*.json
+!data/.gitkeep
+.env
+.DS_Store
+.vscode/

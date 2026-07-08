@@ -1,0 +1,68 @@
+# Rental Tracking App (MVP)
+
+> [!NOTE]
+> **MVP Scope**: This project is designed as a Minimum Viable Product (MVP). It targets the essential features of multi-landlord rental tracking, native bank statement Excel reconciliation, Turkish CPI (TÜFE) rate scraping, and running ledger calculation in a fast and clean single-page app.
+
+A containerized, multi-landlord rental tracking web application designed to run entirely in **Docker / VS Code Devcontainers**. Features include automated bank statement matching, bilingual support (EN/TR), dark mode (defaulting to system preferences), CPI-based (TÜFE) rent increases, and a running debit/credit ledger.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+- **Frontend**: Vite + Vanilla JS & CSS (no heavy framework overhead, fully responsive, sleek dark-mode glassmorphic design).
+- **Backend**: Node.js + Express (serving static assets in production, proxying in development).
+- **Data Persistence**: Isolated JSON files (`global.json` for credentials/rates, and landlord-specific `landlord_<landlord_id>.json` files under the `data/` directory) to guarantee absolute landlord data isolation.
+- **Features**:
+  - HTML scraping of Turkish CPI (TÜFE) rates natively using `cheerio` (no Python dependency).
+  - Excel bank statement parsing natively using `xlsx`.
+
+---
+
+## 🚀 Running the App in Docker (Production Mode)
+
+To build and run the entire application in a single production-grade container (using multi-stage builds and running under the non-privileged `node` user):
+
+1. Make sure Docker and Docker Compose are installed on your system.
+2. Open your terminal in the root of this project and run:
+   ```bash
+   docker-compose up --build -d
+   ```
+3. Open your browser and navigate to:
+   ```text
+   http://localhost:5000
+   ```
+4. **Pre-Seeded Login Credentials**:
+   * **System Administrator**: `admin@rental.local` / Password: `Admin123!`
+     * *Note*: Accesses administrative tools, configurations, or system-wide operations.
+   * **Landlord 1**: `landlord1@example.com` / Password: `landlord123`
+     * *Note*: Fully pre-seeded with properties (TL currency), units, randomized tenants, and active leases configured to match bank statement transactions for immediate reconciliation verification.
+   * **Landlord 2**: `landlord2@example.com` / Password: `landlord123`
+     * *Note*: Seeded with a separate residential property in USD (5% fixed annual increase) to demonstrate cross-landlord data isolation.
+
+---
+
+## 💻 Running the App in Devcontainers (Development Mode)
+
+If you are using VS Code and have the **Dev Containers** extension installed:
+
+1. Open this project directory in VS Code.
+2. VS Code will detect the `.devcontainer` directory and prompt you to:
+   > *"Reopen in Container"*
+3. Click **Reopen in Container** (or run `Dev Containers: Reopen in Container` from the command palette).
+4. VS Code will build the local Alpine Node development container, mount your workspace, and start a shell.
+5. Inside the dev container shell, run:
+   ```bash
+   npm run dev
+   ```
+6. This command runs both the Express backend API and the Vite frontend concurrently:
+   * **Vite Web App**: `http://localhost:5173` (Vite proxies all `/api/*` traffic automatically to port 5000).
+   * **Express API Server**: `http://localhost:5000`
+
+---
+
+## 🔒 Security & Best Practices
+
+- **Zero Hardcoded Credentials**: No database secrets or SMTP passwords are hardcoded in the codebase. Landlords config their own SMTP server in the Settings UI panel.
+- **Isolated Namespaces**: All SQL-like JSON database records are isolated by checking the `x-landlord-id` request header. A landlord can never read or write another landlord's data.
+- **Non-Privileged User**: The production Docker image uses `USER node` to prevent root-privilege escalation inside the container.
+- **Defensive Scraper**: The Cheerio web scraper will catch WAF / Cloudflare blocks gracefully, logging warnings and prompting the user in the UI to input rates manually rather than throwing unhandled exceptions.
