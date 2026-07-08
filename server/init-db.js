@@ -61,9 +61,17 @@ const prop1_2_name = generateRandomPropertyName();
 const prop1_2_city = getRandomItem(PROP_CITIES);
 const prop1_2_address = generateRandomAddress(prop1_2_name, prop1_2_city);
 
+const prop1_3_name = generateRandomPropertyName();
+const prop1_3_city = getRandomItem(PROP_CITIES);
+const prop1_3_address = generateRandomAddress(prop1_3_name, prop1_3_city);
+
 const prop2_1_name = generateRandomPropertyName();
 const prop2_1_city = getRandomItem(PROP_CITIES);
 const prop2_1_address = generateRandomAddress(prop2_1_name, prop2_1_city);
+
+const prop2_2_name = generateRandomPropertyName();
+const prop2_2_city = getRandomItem(PROP_CITIES);
+const prop2_2_address = generateRandomAddress(prop2_2_name, prop2_2_city);
 
 const database = {
   landlords: [
@@ -116,6 +124,16 @@ const database = {
       active: true,
       notes: 'Retail shops'
     },
+    {
+      id: 'prop-1-3',
+      landlordId: 'landlord-1',
+      name: prop1_3_name,
+      address: prop1_3_address,
+      city: prop1_3_city,
+      type: 'Commercial',
+      active: true,
+      notes: 'Newly acquired vacant building'
+    },
     // Seed for Landlord 2
     {
       id: 'prop-2-1',
@@ -126,6 +144,16 @@ const database = {
       type: 'Residential',
       active: true,
       notes: 'Residential apartments'
+    },
+    {
+      id: 'prop-2-2',
+      landlordId: 'landlord-2',
+      name: prop2_2_name,
+      address: prop2_2_address,
+      city: prop2_2_city,
+      type: 'Residential',
+      active: true,
+      notes: 'Vacant residential duplex'
     }
   ],
   units: [],
@@ -542,6 +570,71 @@ landlord2Months.forEach((m, mIdx) => {
 });
 
 database.aliases[landlord2TenantName.toUpperCase()] = landlord2TenantId;
+
+// Seed vacant/unoccupied units for Landlord 1
+database.units.push({
+  id: 'unit-1-vacant-1',
+  propertyId: 'prop-1-1',
+  unitNumber: 'Unit 17',
+  squareMeters: 85,
+  status: 'Vacant',
+  notes: 'Available for commercial lease'
+});
+
+database.units.push({
+  id: 'unit-1-vacant-2',
+  propertyId: 'prop-1-2',
+  unitNumber: 'Unit 18',
+  squareMeters: 120,
+  status: 'Vacant',
+  notes: 'Needs paint job'
+});
+
+database.units.push({
+  id: 'unit-1-vacant-3',
+  propertyId: 'prop-1-3',
+  unitNumber: 'Office A',
+  squareMeters: 215,
+  status: 'Vacant',
+  notes: 'Prime office location'
+});
+
+database.units.push({
+  id: 'unit-1-vacant-4',
+  propertyId: 'prop-1-3',
+  unitNumber: 'Office B',
+  squareMeters: 145,
+  status: 'Vacant',
+  notes: 'High ceiling'
+});
+
+// Seed vacant/unoccupied units for Landlord 2
+database.units.push({
+  id: 'unit-2-vacant-1',
+  propertyId: 'prop-2-1',
+  unitNumber: 'Apartment 4C',
+  squareMeters: 92,
+  status: 'Vacant',
+  notes: 'Available immediately'
+});
+
+database.units.push({
+  id: 'unit-2-vacant-2',
+  propertyId: 'prop-2-2',
+  unitNumber: 'Duplex A',
+  squareMeters: 155,
+  status: 'Vacant',
+  notes: 'Renovated duplex unit'
+});
+
+database.units.push({
+  id: 'unit-2-vacant-3',
+  propertyId: 'prop-2-2',
+  unitNumber: 'Duplex B',
+  squareMeters: 155,
+  status: 'Vacant',
+  notes: 'Renovated duplex unit'
+});
 
 // Notification Templates Seed
 database.notificationTemplates['landlord-1'] = {

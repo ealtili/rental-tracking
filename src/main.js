@@ -478,7 +478,23 @@ async function renderDashboard(container) {
     <!-- Charts Visualization Grid -->
     <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 24px;">
       <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column;">
-        <h3 style="font-size: 16px; margin-bottom: 16px; color: var(--text-primary);" data-i18n="dash_rent_trend">Rent Collection Trend (Expected vs Received)</h3>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+          <h3 style="font-size: 16px; color: var(--text-primary); margin: 0;" data-i18n="dash_rent_trend">Rent Collection Trend (Expected vs Received)</h3>
+          <div style="display: flex; gap: 12px; font-size: 11px; color: var(--text-secondary); align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: linear-gradient(135deg, #818cf8, #4f46e5);"></span>
+              <span data-i18n="legend_expected">Expected</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: linear-gradient(135deg, #34d399, #059669);"></span>
+              <span data-i18n="legend_received">Received</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="display: inline-block; width: 14px; height: 0; border-top: 2px dashed #f59e0b;"></span>
+              <span data-i18n="legend_rate">Rate</span>
+            </div>
+          </div>
+        </div>
         <div style="flex-grow: 1; min-height: 200px; position: relative;">
           <canvas id="rentTrendChart" style="width: 100%; height: 200px; display: block;"></canvas>
         </div>
@@ -633,8 +649,8 @@ function drawRentTrendChart(canvas, data, currency) {
   }
   
   const paddingLeft = 55;
-  const paddingRight = 20;
-  const paddingTop = 20;
+  const paddingRight = 35; // Added room for Y-axis percentage labels
+  const paddingTop = 25;
   const paddingBottom = 30;
   
   const chartWidth = width - paddingLeft - paddingRight;
@@ -647,7 +663,7 @@ function drawRentTrendChart(canvas, data, currency) {
   if (maxVal === 0) maxVal = 1000;
   maxVal = maxVal * 1.1; // 10% ceiling padding
   
-  // Y-axis gridlines and labels
+  // Y-axis gridlines and labels (left side - currency)
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
   ctx.fillStyle = 'var(--text-secondary, #8e9093)';
   ctx.font = '10px Outfit, sans-serif';
@@ -667,17 +683,35 @@ function drawRentTrendChart(canvas, data, currency) {
     ctx.fillText(`${Math.round(val).toLocaleString()} ${currency}`, paddingLeft - 8, y);
   }
   
+  // Right Y-axis percentage labels (for collection rate line)
+  ctx.fillStyle = '#f59e0b';
+  ctx.textAlign = 'left';
+  for (let i = 0; i <= gridSteps; i++) {
+    const pct = (100 / gridSteps) * i;
+    const y = paddingTop + chartHeight - (chartHeight / gridSteps) * i;
+    ctx.fillText(`${pct}%`, width - paddingRight + 8, y);
+  }
+  
   // X-axis & bars
   const colWidth = chartWidth / months.length;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   
+  const linePoints = [];
+  
   months.forEach((m, idx) => {
     const xCenter = paddingLeft + colWidth * idx + colWidth / 2;
     
+    // Month label
     ctx.fillStyle = 'var(--text-secondary, #8e9093)';
     ctx.fillText(m, xCenter, paddingTop + chartHeight + 8);
     
+    // Draw shadows for bars
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+
     // 1. Expected bar
     const expHeight = (data[m].expected / maxVal) * chartHeight;
     const expX = xCenter - 14;
@@ -701,7 +735,54 @@ function drawRentTrendChart(canvas, data, currency) {
       ctx.fillStyle = recGrad;
       drawRoundedRect(ctx, recX, recY, 10, recHeight, 3);
     }
+
+    // Reset shadows
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Save points for collection rate line overlay
+    const rate = data[m].expected > 0 ? Math.min(100, (data[m].received / data[m].expected) * 100) : 100;
+    const yLine = paddingTop + chartHeight - (rate / 100) * chartHeight;
+    linePoints.push({ x: xCenter, y: yLine, rate: Math.round(rate) });
   });
+
+  // 3. Draw Collection Rate Trend Line overlay
+  if (linePoints.length > 0) {
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    linePoints.forEach((p, idx) => {
+      if (idx === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]); // Reset dash
+
+    // Draw rate node bubbles
+    linePoints.forEach(p => {
+      // Glow circle
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 7, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Inner dot
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Label bubble box for easy reading
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 11px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`${p.rate}%`, p.x, p.y - 8);
+    });
+  }
 }
 
 // Chart Helper: Portfolio occupancy doughnut

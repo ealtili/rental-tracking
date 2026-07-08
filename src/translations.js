@@ -41,6 +41,9 @@ export const translations = {
     dash_portfolio_split: "Portfolio Occupancy Status",
     dash_occupied: "OCCUPIED",
     dash_vacant: "VACANT",
+    legend_expected: "Expected Rent",
+    legend_received: "Collected Rent",
+    legend_rate: "Collection Rate",
     
     // Properties
     prop_title: "My Properties & Units",
@@ -235,6 +238,9 @@ export const translations = {
     dash_portfolio_split: "Portföy Doluluk Durumu",
     dash_occupied: "DOLU",
     dash_vacant: "BOŞ",
+    legend_expected: "Beklenen Kira",
+    legend_received: "Tahsil Edilen",
+    legend_rate: "Tahsilat Oranı",
     
     // Properties
     prop_title: "Mülklerim ve Bölümler",
