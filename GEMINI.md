@@ -56,3 +56,19 @@ This file defines the architecture, design guidelines, and developer rules for t
   ```bash
   npm run build
   ```
+
+---
+
+## 🌳 Git & Worktree Workflow
+1. **GitHub Remote**: Private repository at `https://github.com/ealtili/rental-tracking`.
+2. **Worktree Development**: Instead of checking out branches in the main directory, use Git worktrees for parallel feature development to prevent configuration or running container state conflicts:
+   - Add a new feature worktree:
+     ```bash
+     git worktree add ../feature-name -b feature-name
+     ```
+   - Work in the `../feature-name` folder, commit, and push.
+   - Clean up the worktree once the feature is merged:
+     ```bash
+     git worktree remove ../feature-name
+     git branch -d feature-name
+     ```
