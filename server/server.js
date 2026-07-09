@@ -625,9 +625,10 @@ app.post('/api/auth/login', loginRateLimiter, (req, res) => {
 
 // Middleware: Admin-only requests must carry x-admin-id header
 function authenticateAdmin(req, res, next) {
-  const adminId = req.headers['x-admin-id'];
+  const rawId = req.headers['x-admin-id'];
+  const adminId = sanitizeLandlordId(rawId);
   if (!adminId) {
-    return res.status(401).json({ error: 'Unauthorized: Missing x-admin-id header' });
+    return res.status(401).json({ error: 'Unauthorized: Invalid or missing x-admin-id header' });
   }
   const db = readGlobalDb();
   const admin = (db.admins || []).find(a => a.id === adminId);
@@ -686,9 +687,13 @@ app.delete('/api/admin/users/:id', authenticateAdmin, (req, res) => {
   writeGlobalDb(db);
 
   // Delete landlord-specific data file
-  const landlordDbPath = path.join(dataDir, `landlord_${landlordId}.json`);
-  if (fs.existsSync(landlordDbPath)) {
-    fs.unlinkSync(landlordDbPath);
+  try {
+    const landlordDbPath = getLandlordDbPath(landlordId);
+    if (fs.existsSync(landlordDbPath)) {
+      fs.unlinkSync(landlordDbPath);
+    }
+  } catch (err) {
+    console.error('Failed to unlink landlord DB file:', err);
   }
 
   res.json({ success: true, message: `User ${landlordId} and all their data deleted.` });
