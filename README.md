@@ -59,12 +59,19 @@ To build and run the entire application in a single production-grade container (
    ```bash
    cp .env.example .env
    ```
-   Open `.env` and configure your unique keys:
-   ```text
-   DB_ENCRYPTION_KEY=your_64_character_hex_database_key
-   SMTP_ENCRYPTION_KEY=your_32_character_smtp_pass_key
-   SMTP_ENCRYPTION_IV=your_16_character_initialization_vector
-   ```
+   Generate secure unique keys and set them inside `.env`:
+   * **Database key (64-character hex)**:
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+     ```
+   * **SMTP password key (32-character string)**:
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+     ```
+   * **SMTP IV (16-character string)**:
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(8).toString('hex'))"
+     ```
 2. Make sure Docker and Docker Compose are installed on your system.
 3. Open your terminal in the root of this project and run:
    ```bash
