@@ -32,7 +32,12 @@ function hashPassword(password, salt) {
 
 const SALT = 'rental_tracker_salt_2026';
 
-const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY || '6a3c8f8b8a928ef23214b7e8d9c2e4a8b8f8a92b2345e67d8a92b2345e67d8f9';
+const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY;
+
+if (!DB_ENCRYPTION_KEY || DB_ENCRYPTION_KEY.length !== 64) {
+  console.error('FATAL ERROR: DB_ENCRYPTION_KEY must be set in your .env file as a 64-character hex string!');
+  process.exit(1);
+}
 
 function encryptDb(data) {
   const key = Buffer.from(DB_ENCRYPTION_KEY, 'hex');

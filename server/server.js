@@ -78,25 +78,22 @@ function loginRateLimiter(req, res, next) {
 
 // AES-256 Encryption helpers for SMTP passwords
 const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
-const SMTP_ENCRYPTION_KEY = process.env.SMTP_ENCRYPTION_KEY || 'a3c8f8b8a928ef23214b7e8d9c2e4a8b';
-const SMTP_ENCRYPTION_IV = process.env.SMTP_ENCRYPTION_IV || 'f7e8a92b2345e67d';
-const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY || '6a3c8f8b8a928ef23214b7e8d9c2e4a8b8f8a92b2345e67d8a92b2345e67d8f9';
+const SMTP_ENCRYPTION_KEY = process.env.SMTP_ENCRYPTION_KEY;
+const SMTP_ENCRYPTION_IV = process.env.SMTP_ENCRYPTION_IV;
+const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY;
 
-// Enforce strict key checks in production
-const isProd = process.env.NODE_ENV === 'production';
-if (isProd) {
-  if (!process.env.DB_ENCRYPTION_KEY || process.env.DB_ENCRYPTION_KEY.length !== 64) {
-    console.error('FATAL: DB_ENCRYPTION_KEY must be set as a 64-character hex string in production!');
-    process.exit(1);
-  }
-  if (!process.env.SMTP_ENCRYPTION_KEY || process.env.SMTP_ENCRYPTION_KEY.length !== 32) {
-    console.error('FATAL: SMTP_ENCRYPTION_KEY must be set as a 32-character string in production!');
-    process.exit(1);
-  }
-  if (!process.env.SMTP_ENCRYPTION_IV || process.env.SMTP_ENCRYPTION_IV.length !== 16) {
-    console.error('FATAL: SMTP_ENCRYPTION_IV must be set as a 16-character string in production!');
-    process.exit(1);
-  }
+// Strict security checks on startup - No hardcoded fallbacks allowed
+if (!DB_ENCRYPTION_KEY || DB_ENCRYPTION_KEY.length !== 64) {
+  console.error('FATAL ERROR: DB_ENCRYPTION_KEY must be set in your .env file as a 64-character hex string!');
+  process.exit(1);
+}
+if (!SMTP_ENCRYPTION_KEY || SMTP_ENCRYPTION_KEY.length !== 32) {
+  console.error('FATAL ERROR: SMTP_ENCRYPTION_KEY must be set in your .env file as a 32-character string!');
+  process.exit(1);
+}
+if (!SMTP_ENCRYPTION_IV || SMTP_ENCRYPTION_IV.length !== 16) {
+  console.error('FATAL ERROR: SMTP_ENCRYPTION_IV must be set in your .env file as a 16-character string!');
+  process.exit(1);
 }
 
 // 1. Text Encryption helpers (used for SMTP App Passwords)
