@@ -13,6 +13,9 @@ services:
     environment:
       - PORT=5000
       - NODE_ENV=production
+      - DB_ENCRYPTION_KEY=6a3c8f8b8a928ef23214b7e8d9c2e4a8b8f8a92b2345e67d8a92b2345e67d8f9
+      - SMTP_ENCRYPTION_KEY=a3c8f8b8a928ef23214b7e8d9c2e4a8b
+      - SMTP_ENCRYPTION_IV=f7e8a92b2345e67d
     security_opt:
       - no-new-privileges:true
 

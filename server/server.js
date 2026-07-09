@@ -63,12 +63,31 @@ function loginRateLimiter(req, res, next) {
 
 // AES-256 Encryption helpers for SMTP passwords
 const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.SMTP_ENCRYPTION_KEY || 'a3c8f8b8a928ef23214b7e8d9c2e4a8b';
-const ENCRYPTION_IV = process.env.SMTP_ENCRYPTION_IV || 'f7e8a92b2345e67d';
+const SMTP_ENCRYPTION_KEY = process.env.SMTP_ENCRYPTION_KEY || 'a3c8f8b8a928ef23214b7e8d9c2e4a8b';
+const SMTP_ENCRYPTION_IV = process.env.SMTP_ENCRYPTION_IV || 'f7e8a92b2345e67d';
+const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY || '6a3c8f8b8a928ef23214b7e8d9c2e4a8b8f8a92b2345e67d8a92b2345e67d8f9';
 
+// Enforce strict key checks in production
+const isProd = process.env.NODE_ENV === 'production';
+if (isProd) {
+  if (!process.env.DB_ENCRYPTION_KEY || process.env.DB_ENCRYPTION_KEY.length !== 64) {
+    console.error('FATAL: DB_ENCRYPTION_KEY must be set as a 64-character hex string in production!');
+    process.exit(1);
+  }
+  if (!process.env.SMTP_ENCRYPTION_KEY || process.env.SMTP_ENCRYPTION_KEY.length !== 32) {
+    console.error('FATAL: SMTP_ENCRYPTION_KEY must be set as a 32-character string in production!');
+    process.exit(1);
+  }
+  if (!process.env.SMTP_ENCRYPTION_IV || process.env.SMTP_ENCRYPTION_IV.length !== 16) {
+    console.error('FATAL: SMTP_ENCRYPTION_IV must be set as a 16-character string in production!');
+    process.exit(1);
+  }
+}
+
+// 1. Text Encryption helpers (used for SMTP App Passwords)
 function encrypt(text) {
   if (!text) return '';
-  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, Buffer.from(ENCRYPTION_KEY), Buffer.from(ENCRYPTION_IV));
+  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, Buffer.from(SMTP_ENCRYPTION_KEY), Buffer.from(SMTP_ENCRYPTION_IV));
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   return encrypted;
@@ -77,13 +96,58 @@ function encrypt(text) {
 function decrypt(text) {
   if (!text) return '';
   try {
-    const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, Buffer.from(ENCRYPTION_KEY), Buffer.from(ENCRYPTION_IV));
+    const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, Buffer.from(SMTP_ENCRYPTION_KEY), Buffer.from(SMTP_ENCRYPTION_IV));
     let decrypted = decipher.update(text, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (err) {
     console.error('Decryption failed, returning plain text:', err);
     return text;
+  }
+}
+
+// 2. Database Encryption helpers (used for landlord JSON files, AES-256-GCM authenticated encryption)
+function encryptDb(data) {
+  const key = Buffer.from(DB_ENCRYPTION_KEY, 'hex');
+  const iv = crypto.randomBytes(12); // GCM standard 12-byte IV
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  
+  let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const tag = cipher.getAuthTag().toString('hex');
+  
+  return JSON.stringify({
+    iv: iv.toString('hex'),
+    tag: tag,
+    content: encrypted
+  });
+}
+
+function decryptDb(encryptedStr) {
+  try {
+    const payload = JSON.parse(encryptedStr);
+    
+    // Check if the payload matches the encrypted format (carries content/tag/iv)
+    if (!payload.content || !payload.tag || !payload.iv) {
+      // Auto-fallback and transparent migration for legacy unencrypted databases
+      return payload;
+    }
+    
+    const key = Buffer.from(DB_ENCRYPTION_KEY, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(payload.iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(payload.tag, 'hex'));
+    
+    let decrypted = decipher.update(payload.content, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return JSON.parse(decrypted);
+  } catch (err) {
+    console.error('Failed to decrypt database, attempting raw JSON parse fallback:', err);
+    try {
+      return JSON.parse(encryptedStr);
+    } catch (e) {
+      throw new Error(`Database corrupted or invalid encryption key: ${err.message}`);
+    }
   }
 }
 
@@ -215,7 +279,8 @@ function readLandlordDb(landlordId) {
         bankTransactions: []
       };
     }
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const data = decryptDb(fileContent);
     if (!data.chartOfAccounts) data.chartOfAccounts = DEFAULT_COA;
     if (!data.journalEntries) data.journalEntries = [];
     if (!data.bankTransactions) data.bankTransactions = [];
@@ -241,7 +306,8 @@ function readLandlordDb(landlordId) {
 function writeLandlordDb(landlordId, data) {
   const filePath = getLandlordDbPath(landlordId);
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    const encryptedContent = encryptDb(data);
+    fs.writeFileSync(filePath, encryptedContent, 'utf8');
   } catch (err) {
     console.error(`Error writing landlord DB for ${landlordId}:`, err);
   }

@@ -1,0 +1,216 @@
+{
+  "$schema-description": "This fixture file serves as documentation for the decrypted landlord JSON schema (TDE format). It shows the structure of a decrypted landlord database file without exposing sensitive production databases.",
+  "properties": [
+    {
+      "id": "prop-1-1",
+      "landlordId": "landlord-1",
+      "address": "Sanayi Caddesi No:124 D:1",
+      "city": "Milas",
+      "type": "Commercial",
+      "active": true,
+      "notes": "Main commercial building"
+    }
+  ],
+  "units": [
+    {
+      "id": "unit-1-1",
+      "propertyId": "prop-1-1",
+      "unitNumber": "Dükkan 1",
+      "squareMeters": 150,
+      "status": "Occupied",
+      "notes": "Main storefront"
+    },
+    {
+      "id": "unit-1-vacant-1",
+      "propertyId": "prop-1-1",
+      "unitNumber": "Dükkan 2",
+      "squareMeters": 85,
+      "status": "Vacant",
+      "notes": "Available for commercial lease"
+    }
+  ],
+  "tenants": [
+    {
+      "id": "tenant-1-1",
+      "landlordId": "landlord-1",
+      "name": "Hakan Yılmaz",
+      "email": "hakan@yilmaz.com",
+      "phone": "+905332222222",
+      "aliases": [
+        "HAKAN YILMAZ"
+      ],
+      "linkedAccounts": [
+        "Banka: 0067 SN: 2991148561"
+      ]
+    }
+  ],
+  "leases": [
+    {
+      "id": "lease-1-1",
+      "unitId": "unit-1-1",
+      "tenantId": "tenant-1-1",
+      "startDate": "2025-06-15",
+      "endDate": "2026-06-14",
+      "dueDay": 15,
+      "status": "Active",
+      "increaseRule": {
+        "type": "cpi",
+        "manualPercentage": null
+      },
+      "rentSchedule": [
+        {
+          "startDate": "2025-06-15",
+          "endDate": "2026-06-14",
+          "amount": 15000.0,
+          "currency": "TL"
+        }
+      ],
+      "deposits": [
+        {
+          "type": "Security Deposit",
+          "amount": 30000.0,
+          "currency": "TL",
+          "status": "Held"
+        }
+      ]
+    }
+  ],
+  "ledgerEntries": [
+    {
+      "id": "ledger-charge-1-0",
+      "landlordId": "landlord-1",
+      "leaseId": "lease-1-1",
+      "date": "2026-05-15",
+      "type": "charge",
+      "amount": 15000.0,
+      "currency": "TL",
+      "description": "Hakan Yılmaz Rent Charge - 2026-05"
+    },
+    {
+      "id": "ledger-pay-1-0",
+      "landlordId": "landlord-1",
+      "leaseId": "lease-1-1",
+      "date": "2026-05-17",
+      "type": "payment",
+      "amount": 15000.0,
+      "currency": "TL",
+      "description": "Hakan Yılmaz Rent Payment - 2026-05",
+      "paymentId": "pay-seed-1-0"
+    }
+  ],
+  "payments": [
+    {
+      "id": "pay-seed-1-0",
+      "landlordId": "landlord-1",
+      "leaseId": "lease-1-1",
+      "tenantName": "Hakan Yılmaz",
+      "paymentDate": "2026-05-17",
+      "period": "2026-05-01",
+      "amount": 15000.0,
+      "currency": "TL",
+      "paymentMethod": "Bank Transfer",
+      "reference": "Banka: 0067 SN: 2991148561 HAKAN YILMAZ KIRA ODEMESI",
+      "incomeType": "Rent",
+      "notes": "Seeded historical payment"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "exp-1",
+      "landlordId": "landlord-1",
+      "propertyId": "prop-1-1",
+      "amount": 150.0,
+      "currency": "TL",
+      "date": "2026-05-18",
+      "category": "Maintenance",
+      "description": "Lock replacement"
+    }
+  ],
+  "aliases": {
+    "HAKAN YILMAZ": "tenant-1-1"
+  },
+  "chartOfAccounts": {
+    "1100": {
+      "name": "Cash / Bank Account",
+      "type": "Asset"
+    },
+    "1200": {
+      "name": "Accounts Receivable (Rent)",
+      "type": "Asset"
+    },
+    "2200": {
+      "name": "Security Deposit Liability",
+      "type": "Liability"
+    },
+    "4100": {
+      "name": "Rental Income",
+      "type": "Income"
+    },
+    "5100": {
+      "name": "Property Taxes / Stopaj",
+      "type": "Expense"
+    },
+    "5200": {
+      "name": "Maintenance & Repairs",
+      "type": "Expense"
+    }
+  },
+  "journalEntries": [
+    {
+      "id": "je-charge-lease-1-1-2026-05-01",
+      "date": "2026-05-15",
+      "description": "Rent Charge - 2026-05",
+      "leaseId": "lease-1-1",
+      "lines": [
+        {
+          "accountId": "1200",
+          "debit": 15000.0,
+          "credit": 0
+        },
+        {
+          "accountId": "4100",
+          "debit": 0,
+          "credit": 15000.0
+        }
+      ]
+    },
+    {
+      "id": "je-pay-pay-seed-1-0",
+      "date": "2026-05-17",
+      "description": "Rent Payment - Hakan Yılmaz - period 2026-05",
+      "leaseId": "lease-1-1",
+      "bankTransactionId": "tx-seed-1-0",
+      "lines": [
+        {
+          "accountId": "1100",
+          "debit": 15000.0,
+          "credit": 0
+        },
+        {
+          "accountId": "1200",
+          "debit": 0,
+          "credit": 15000.0
+        }
+      ]
+    }
+  ],
+  "bankTransactions": [
+    {
+      "id": "tx-seed-1-0",
+      "landlordId": "landlord-1",
+      "date": "2026-05-17 12:00:00",
+      "amount": 15000.0,
+      "currency": "TL",
+      "description": "Banka: 0067 SN: 2991148561 HAKAN YILMAZ KIRA ODEMESI",
+      "refNumber": "SN-0-0",
+      "reconciliationStatus": "Reconciled",
+      "matchedLeaseId": "lease-1-1"
+    }
+  ],
+  "notificationTemplates": {
+    "rentIncrease2DaysEmailSubject": "Rent Adjustment Notice / Kira Artış Bildirimi",
+    "rentIncrease2DaysEmailBody": "Dear {tenant_name},\n\nThis is a notification that on {increase_date}, your rent for {property_address} will increase to {new_rent} {currency} based on the TÜFE rate ({cpi_rate}%).\n\nBest regards,\n{landlord_name}",
+    "rentIncrease2DaysWhatsApp": "Hello {tenant_name}. A friendly reminder that your rent for {property_address} will adjust to {new_rent} {currency} on {increase_date} (TÜFE rate: {cpi_rate}%)."
+  },
+  "notificationsQueue": []
+}

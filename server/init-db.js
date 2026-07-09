@@ -17,6 +17,24 @@ function hashPassword(password, salt) {
 
 const SALT = 'rental_tracker_salt_2026';
 
+const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY || '6a3c8f8b8a928ef23214b7e8d9c2e4a8b8f8a92b2345e67d8a92b2345e67d8f9';
+
+function encryptDb(data) {
+  const key = Buffer.from(DB_ENCRYPTION_KEY, 'hex');
+  const iv = crypto.randomBytes(12); // GCM standard 12-byte IV
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  
+  let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const tag = cipher.getAuthTag().toString('hex');
+  
+  return JSON.stringify({
+    iv: iv.toString('hex'),
+    tag: tag,
+    content: encrypted
+  });
+}
+
 // Randomization Lists
 const EN_FIRST_NAMES = ['John', 'Jane', 'Robert', 'Mary', 'David', 'Linda', 'James', 'Patricia', 'William', 'Elizabeth', 'Richard', 'Susan', 'Joseph', 'Jessica', 'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Matthew', 'Lisa', 'Daniel', 'Betty', 'Mark', 'Margaret', 'Donald', 'Sandra', 'Anthony', 'Ashley', 'Paul', 'Kimberly', 'Steven', 'Emily', 'Andrew', 'Donna', 'Kenneth', 'Michelle', 'Joshua', 'Carol', 'Kevin', 'Amanda', 'Brian', 'Melissa', 'George', 'Deborah', 'Edward', 'Stephanie', 'Ronald', 'Rebecca'];
 const EN_LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia', 'Rodriguez', 'Wilson', 'Martinez', 'Anderson', 'Taylor', 'Thomas', 'Hernandez', 'Moore', 'Martin', 'Jackson', 'Thompson', 'White', 'Lopez', 'Lee', 'Gonzalez', 'Harris', 'Clark', 'Lewis', 'Robinson', 'Walker', 'Perez', 'Hall', 'Young', 'Allen', 'Sanchez', 'Wright', 'King', 'Scott', 'Green', 'Baker', 'Adams', 'Nelson', 'Hill', 'Ramirez', 'Campbell', 'Mitchell', 'Roberts', 'Carter', 'Phillips', 'Evans', 'Turner', 'Torres'];
@@ -736,7 +754,7 @@ database.landlords.forEach(landlord => {
   landlordDb.notificationsQueue = database.notificationsQueue.filter(nq => nq.landlordId === landlord.id);
 
   const landlordDbPath = path.join(dataDir, `landlord_${landlord.id}.json`);
-  fs.writeFileSync(landlordDbPath, JSON.stringify(landlordDb, null, 2), 'utf8');
+  fs.writeFileSync(landlordDbPath, encryptDb(landlordDb), 'utf8');
   console.log(`Landlord ${landlord.name} database seeded at:`, landlordDbPath);
 });
 
