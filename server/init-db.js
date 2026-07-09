@@ -232,9 +232,13 @@ landlord1TenantsData.forEach((t, index) => {
   const startMonth = Math.floor(Math.random() * 10) + 1;
   const startDay = t.dueDay;
   
+  // Randomize duration (12, 18, or 24 months) and offset the end date by -1 day to ensure start/end are different
+  const durations = [12, 18, 24];
+  const durationMonths = durations[index % durations.length];
+  
   const sDate = new Date(2025, startMonth - 1, startDay);
-  const eDate = new Date(2026, startMonth - 1, startDay);
-  const schedEDate = new Date(2026, startMonth - 1, startDay - 1);
+  const eDate = new Date(2025, startMonth - 1 + durationMonths, startDay - 1);
+  const schedEDate = new Date(2025, startMonth - 1 + durationMonths, startDay - 1);
   
   const startDateStr = sDate.toISOString().split('T')[0];
   const endDateStr = eDate.toISOString().split('T')[0];
@@ -414,7 +418,7 @@ const bobRent = Math.round(1200 * (0.9 + Math.random() * 0.2) * 100) / 100;
 const bobStartMonth = Math.floor(Math.random() * 10) + 1;
 const bobStartDay = 1;
 const bobSDate = new Date(2025, bobStartMonth - 1, bobStartDay);
-const bobEDate = new Date(2026, bobStartMonth - 1, bobStartDay);
+const bobEDate = new Date(2026, bobStartMonth - 1, bobStartDay - 1);
 const bobSchedEDate = new Date(2026, bobStartMonth - 1, bobStartDay - 1);
 
 const bobStartDateStr = bobSDate.toISOString().split('T')[0];
