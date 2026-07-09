@@ -19,11 +19,12 @@ A containerized, multi-landlord rental tracking web application designed to run 
 
 ---
 
-## 🔒 Security Hardening & Key Management
+## 🔒 Security Hardening & Secret Management
 
-- **Local Secrets Config (`.env`)**: Sensitive credentials and cryptographic keys are loaded natively from a root `.env` configuration file (with zero external dependencies) and are excluded from version control via `.gitignore` and `.dockerignore`.
+- **Zero Hardcoded Secrets**: Cryptographic keys and application passwords are never hardcoded in the codebase.
+- **Local Secrets Config (`.env`)**: Sensitive credentials, database GCM keys, and SMTP credentials must be loaded natively from a root `.env` configuration file on runtime. A template is provided at `.env.example`. This file is excluded from public git history via `.gitignore` and `.dockerignore`.
 - **Transparent Database Encryption (TDE)**: Landlord-specific database JSON files (`landlord_<id>.json`) are encrypted at rest using **AES-256-GCM** authenticated encryption, rendering stored files completely unreadable if offline backups or physical storage are compromised.
-- **Strict Production Key Validation**: If `NODE_ENV=production` is set, the server strictly validates encryption keys and initialization vectors. If any parameters are missing or insecure, the server prints a fatal error and terminates the process immediately.
+- **Strict Key Validation**: The server strictly validates encryption keys and initialization vectors on boot. If any parameters are missing, weak, or invalid, the server prints a fatal error and terminates the process immediately.
 - **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
 - **Memory-Hard Password Hashing**: Password hashing utilizes Node's native `crypto.scryptSync` key derivation algorithm, securing accounts against GPU brute-force cracking.
 - **Path Traversal Sanitization**: All file interactions and auth headers pass through a strict regex-based whitelister (`/^(landlord|admin)-[a-zA-Z0-9_-]+$/`), protecting host files against directory traversal attempts.
@@ -54,7 +55,11 @@ A containerized, multi-landlord rental tracking web application designed to run 
 
 To build and run the entire application in a single production-grade container (using multi-stage builds and running under the non-privileged `node` user):
 
-1. **Configure Environment Secrets**: Create a `.env` file in the project root:
+1. **Configure Environment Secrets**: Copy `.env.example` to `.env` in the project root:
+   ```bash
+   cp .env.example .env
+   ```
+   Open `.env` and configure your unique keys:
    ```text
    DB_ENCRYPTION_KEY=your_64_character_hex_database_key
    SMTP_ENCRYPTION_KEY=your_32_character_smtp_pass_key
@@ -90,8 +95,9 @@ If you are using VS Code and have the **Dev Containers** extension installed:
    > *"Reopen in Container"*
 3. Click **Reopen in Container** (or run `Dev Containers: Reopen in Container` from the command palette).
 4. VS Code will build the local Alpine Node development container, mount your workspace, and start a shell.
-5. Inside the dev container shell, run:
+5. Create `.env` from `.env.example` and start development:
    ```bash
+   cp .env.example .env
    npm run dev
    ```
 6. This command runs both the Express backend API and the Vite frontend concurrently:

@@ -26,18 +26,19 @@ A multi-landlord rental tracking web application designed to automate bank state
 
 ## 🔒 Security Hardening & Secret Management
 
-1. **Local Secrets Config (`.env`)**: Sensitive credentials, database GCM keys, and SMTP credentials are loaded natively from a root `.env` configuration file on runtime. This file is excluded from public git history via `.gitignore` and `.dockerignore`.
-2. **Broken Authentication Protection**: Strict token/header validation (`x-landlord-id` / `x-admin-id`) in middleware.
-3. **GPU Brute-Force Resistance**: Native `crypto.scryptSync` key derivation for secure, slow password hashing (64-byte outputs).
-4. **Directory Path Traversal Protection**: Regex-based whitelister matching format `/^(landlord|admin)-[a-zA-Z0-9_-]+$/` applied to all file lookup APIs.
-5. **Transparent Database Encryption (TDE)**: Landlord-specific database files are encrypted at rest using **AES-256-GCM** authenticated encryption. Read/write hooks (`readLandlordDb`/`writeLandlordDb`) automatically handle encryption/decryption on-the-fly.
-6. **Strict Production Key Validation**: If `NODE_ENV=production` is set, the server strictly validates encryption keys and initialization vectors. If any parameters are missing or insecure, the server prints a fatal error and terminates the process immediately.
-7. **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
-8. **Encryption at Rest for SMTP Credentials**: Landlord SMTP passwords are encrypted at rest using AES-256-CBC and decrypted on-the-fly when initializing the `nodemailer` transporter.
-9. **Native HTTP Security Headers**: Native middleware setting `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Content-Security-Policy`.
-10. **CORS Hardening**: Strict origin whitelisting matching frontend URL parameters.
-11. **Rate Limiting**: Custom memory-based IP rate-limiting restricting login and registration attempts (10 requests per 15 minutes).
-12. **Secure File Filters**: Excel `.xlsx` only restriction with $5\text{MB}$ size limit configuration.
+1. **Zero Hardcoded Secrets**: Cryptographic keys, salts, and passwords are never hardcoded in the codebase.
+2. **Local Secrets Config (`.env`)**: Sensitive credentials, database GCM keys, and SMTP credentials must be loaded natively from a root `.env` configuration file on runtime. A template is provided at `.env.example`. This file is excluded from public git history via `.gitignore` and `.dockerignore`.
+3. **Broken Authentication Protection**: Strict token/header validation (`x-landlord-id` / `x-admin-id`) in middleware.
+4. **GPU Brute-Force Resistance**: Native `crypto.scryptSync` key derivation for secure, slow password hashing (64-byte outputs).
+5. **Directory Path Traversal Protection**: Regex-based whitelister matching format `/^(landlord|admin)-[a-zA-Z0-9_-]+$/` applied to all file lookup APIs.
+6. **Transparent Database Encryption (TDE)**: Landlord-specific database files are encrypted at rest using **AES-256-GCM** authenticated encryption. Read/write hooks (`readLandlordDb`/`writeLandlordDb`) automatically handle encryption/decryption on-the-fly.
+7. **Strict Key Validation**: The server strictly validates encryption keys and initialization vectors on boot. If any parameters are missing, weak, or invalid, the server prints a fatal error and terminates the process immediately.
+8. **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
+9. **Encryption at Rest for SMTP Credentials**: Landlord SMTP passwords are encrypted at rest using AES-256-CBC and decrypted on-the-fly when initializing the `nodemailer` transporter.
+10. **Native HTTP Security Headers**: Native middleware setting `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Content-Security-Policy`.
+11. **CORS Hardening**: Strict origin whitelisting matching frontend URL parameters.
+12. **Rate Limiting**: Custom memory-based IP rate-limiting restricting login and registration attempts (10 requests per 15 minutes).
+13. **Secure File Filters**: Excel `.xlsx` only restriction with $5\text{MB}$ size limit configuration.
 
 ---
 
