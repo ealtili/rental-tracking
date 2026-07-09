@@ -19,8 +19,9 @@ A containerized, multi-landlord rental tracking web application designed to run 
 
 ---
 
-## 🔒 Security Hardening
+## 🔒 Security Hardening & Key Management
 
+- **Local Secrets Config (`.env`)**: Sensitive credentials and cryptographic keys are loaded natively from a root `.env` configuration file (with zero external dependencies) and are excluded from version control via `.gitignore` and `.dockerignore`.
 - **Transparent Database Encryption (TDE)**: Landlord-specific database JSON files (`landlord_<id>.json`) are encrypted at rest using **AES-256-GCM** authenticated encryption, rendering stored files completely unreadable if offline backups or physical storage are compromised.
 - **Strict Production Key Validation**: If `NODE_ENV=production` is set, the server strictly validates encryption keys and initialization vectors. If any parameters are missing or insecure, the server prints a fatal error and terminates the process immediately.
 - **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
@@ -53,16 +54,22 @@ A containerized, multi-landlord rental tracking web application designed to run 
 
 To build and run the entire application in a single production-grade container (using multi-stage builds and running under the non-privileged `node` user):
 
-1. Make sure Docker and Docker Compose are installed on your system.
-2. Open your terminal in the root of this project and run:
+1. **Configure Environment Secrets**: Create a `.env` file in the project root:
+   ```text
+   DB_ENCRYPTION_KEY=your_64_character_hex_database_key
+   SMTP_ENCRYPTION_KEY=your_32_character_smtp_pass_key
+   SMTP_ENCRYPTION_IV=your_16_character_initialization_vector
+   ```
+2. Make sure Docker and Docker Compose are installed on your system.
+3. Open your terminal in the root of this project and run:
    ```bash
    docker-compose up --build -d
    ```
-3. Open your browser and navigate to:
+4. Open your browser and navigate to:
    ```text
    http://localhost:5000
    ```
-4. **Pre-Seeded Login Credentials**:
+5. **Pre-Seeded Login Credentials**:
    * **System Administrator**: `admin@rental.local` / Password: `Admin123!`
      * *Note*: Accesses administrative tools, configurations, or system-wide operations.
    * **Landlord 1**: `landlord1@example.com` / Password: `landlord123`

@@ -14,6 +14,7 @@ This file defines the architecture, design guidelines, and developer rules for t
    - Authentication is simulation-based using credentials in `data/global.json` (supporting both regular landlords and the system administrator account).
    - All tenant, lease, and transaction data is kept in landlord-specific files (`data/landlord_<landlord_id>.json`).
    - Every backend route that acts on landlord resources must enforce isolation by validating the `x-landlord-id` header. A landlord must never be allowed to read/write another landlord's file.
+   - **Local Secrets Config (`.env`)**: Sensitive credentials, database GCM keys, and SMTP credentials must be loaded natively from a root `.env` configuration file on runtime. This file is excluded from public git history via `.gitignore` and `.dockerignore`.
    - **Path Traversal Sanitizer**: All landlord/admin identifiers must be checked against a strict regex whitelist `/^(landlord|admin)-[a-zA-Z0-9_-]+$/` before accessing filesystem resources.
    - **Password Hashing**: Use secure scryptSync KDF for passwords. Never store plaintext credentials.
    - **Transparent Database Encryption (TDE)**: All landlord-specific database JSON files must be encrypted at rest using standard **AES-256-GCM** authenticated encryption. Files are decrypted on-the-fly inside the reading hooks.

@@ -24,19 +24,20 @@ A multi-landlord rental tracking web application designed to automate bank state
 
 ---
 
-## 🔒 Security Hardening
+## 🔒 Security Hardening & Secret Management
 
-1. **Broken Authentication Protection**: Strict token/header validation (`x-landlord-id` / `x-admin-id`) in middleware.
-2. **GPU Brute-Force Resistance**: Native `crypto.scryptSync` key derivation for secure, slow password hashing (64-byte outputs).
-3. **Directory Path Traversal Protection**: Regex-based whitelister matching format `/^(landlord|admin)-[a-zA-Z0-9_-]+$/` applied to all file lookup APIs.
-4. **Transparent Database Encryption (TDE)**: Landlord-specific database files are encrypted at rest using **AES-256-GCM** authenticated encryption. Read/write hooks (`readLandlordDb`/`writeLandlordDb`) automatically handle encryption/decryption on-the-fly.
-5. **Strict Production Key Validation**: If `NODE_ENV=production` is set, the server strictly validates encryption keys and initialization vectors. If any parameters are missing or insecure, the server prints a fatal error and terminates the process immediately.
-6. **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
-7. **Encryption at Rest for SMTP Credentials**: Landlord SMTP passwords are encrypted at rest using AES-256-CBC and decrypted on-the-fly when initializing the `nodemailer` transporter.
-8. **Native HTTP Security Headers**: Native middleware setting `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Content-Security-Policy`.
-9. **CORS Hardening**: Strict origin whitelisting matching frontend URL parameters.
-10. **Rate Limiting**: Custom memory-based IP rate-limiting restricting login and registration attempts (10 requests per 15 minutes).
-11. **Secure File Filters**: Excel `.xlsx` only restriction with $5\text{MB}$ size limit configuration.
+1. **Local Secrets Config (`.env`)**: Sensitive credentials, database GCM keys, and SMTP credentials are loaded natively from a root `.env` configuration file on runtime. This file is excluded from public git history via `.gitignore` and `.dockerignore`.
+2. **Broken Authentication Protection**: Strict token/header validation (`x-landlord-id` / `x-admin-id`) in middleware.
+3. **GPU Brute-Force Resistance**: Native `crypto.scryptSync` key derivation for secure, slow password hashing (64-byte outputs).
+4. **Directory Path Traversal Protection**: Regex-based whitelister matching format `/^(landlord|admin)-[a-zA-Z0-9_-]+$/` applied to all file lookup APIs.
+5. **Transparent Database Encryption (TDE)**: Landlord-specific database files are encrypted at rest using **AES-256-GCM** authenticated encryption. Read/write hooks (`readLandlordDb`/`writeLandlordDb`) automatically handle encryption/decryption on-the-fly.
+6. **Strict Production Key Validation**: If `NODE_ENV=production` is set, the server strictly validates encryption keys and initialization vectors. If any parameters are missing or insecure, the server prints a fatal error and terminates the process immediately.
+7. **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
+8. **Encryption at Rest for SMTP Credentials**: Landlord SMTP passwords are encrypted at rest using AES-256-CBC and decrypted on-the-fly when initializing the `nodemailer` transporter.
+9. **Native HTTP Security Headers**: Native middleware setting `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Content-Security-Policy`.
+10. **CORS Hardening**: Strict origin whitelisting matching frontend URL parameters.
+11. **Rate Limiting**: Custom memory-based IP rate-limiting restricting login and registration attempts (10 requests per 15 minutes).
+12. **Secure File Filters**: Excel `.xlsx` only restriction with $5\text{MB}$ size limit configuration.
 
 ---
 
