@@ -3,7 +3,35 @@
 > [!NOTE]
 > **MVP Scope**: This project is designed as a Minimum Viable Product (MVP). It targets the essential features of multi-landlord rental tracking, native bank statement Excel reconciliation, Turkish CPI (TÜFE) rate scraping, and running ledger calculation in a fast and clean single-page app.
 
-A containerized, multi-landlord rental tracking web application designed to run entirely in **Docker / VS Code Devcontainers**. Features include automated bank statement matching, bilingual support (EN/TR), dark mode (defaulting to system preferences), CPI-based (TÜFE) rent increases, and a running debit/credit ledger.
+A containerized, multi-landlord rental tracking web application designed to run entirely in **Docker / VS Code Devcontainers**. Features include automated bank statement matching, bilingual support (EN/TR), dark mode (defaulting to system preferences), CPI-based (TÜFE) rent increases, a running debit/credit ledger, and customizable visual analytics.
+
+---
+
+## 🎨 Premium Visual Analytics & UI Features
+
+- **Rent Collection Trend Combo Chart**: 
+  - Grouped Expected vs. Received rent columns with rounded caps, drop-shadows, and dynamic dark/light theme-adaptive colors.
+  - Secondary right Y-axis for percentages, displaying an overlay **Collection Rate Trend Line** connecting glow-ring nodes and bold percentage labels.
+  - Slices data to the last 6 months to prevent text overlapping and maintain visual elegance.
+  - Clean HTML-based legend with gradient symbols matching brand colors.
+- **Portfolio Occupancy Doughnut Chart**: Displays occupied vs. vacant units and dynamic occupancy rate calculations.
+- **Inline SVG Favicon**: High-resolution, theme-color matching building favicon linked in the browser tab.
+
+---
+
+## 🔒 Security Hardening
+
+- **Memory-Hard Password Hashing**: Upgraded from legacy SHA-256 to Node's native `crypto.scryptSync` key derivation algorithm, securing accounts against GPU brute-force cracking.
+- **Path Traversal Sanitization**: All file interactions and auth headers pass through a strict regex-based whitelister (`/^(landlord|admin)-[a-zA-Z0-9_-]+$/`), protecting host files against directory traversal attempts.
+- **SMTP Credential Encryption**: Landlord SMTP passwords are encrypted at rest using AES-256-CBC and decrypted on-the-fly when sending emails, protecting SMTP keys stored in global settings.
+- **Native HTTP Security Headers**: Lightweight custom middleware injecting secure headers:
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `X-XSS-Protection: 1; mode=block`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Content-Security-Policy` (aligned with SPA needs)
+- **Login Rate Limiting**: Memory-based IP rate limiter restricting login/signup actions to 10 requests per 15 minutes to block brute-force attacks.
+- **Secure File Upload Filters**: Strict extension check (allowing `.xlsx` Excel files only) and $5\text{MB}$ size limit configuration.
 
 ---
 
@@ -35,9 +63,11 @@ To build and run the entire application in a single production-grade container (
    * **System Administrator**: `admin@rental.local` / Password: `Admin123!`
      * *Note*: Accesses administrative tools, configurations, or system-wide operations.
    * **Landlord 1**: `landlord1@example.com` / Password: `landlord123`
-     * *Note*: Fully pre-seeded with properties (TL currency), units, randomized tenants, and active leases configured to match bank statement transactions for immediate reconciliation verification.
+     * *Note*: Seeded with dynamic properties, unoccupied units, active leases (randomized durations: 12/18/24 months, distinct start/end dates), and historical payments matched to bank transactions from start date up to May 2026.
    * **Landlord 2**: `landlord2@example.com` / Password: `landlord123`
-     * *Note*: Seeded with a separate residential property in USD (5% fixed annual increase) to demonstrate cross-landlord data isolation.
+     * *Note*: Seeded with separate USD properties, unoccupied duplex units, and active leases to demonstrate data isolation.
+
+*All data configurations (names, currencies, addresses, lease terms) are fully randomized on every seed execution.*
 
 ---
 
@@ -57,15 +87,6 @@ If you are using VS Code and have the **Dev Containers** extension installed:
 6. This command runs both the Express backend API and the Vite frontend concurrently:
    * **Vite Web App**: `http://localhost:5173` (Vite proxies all `/api/*` traffic automatically to port 5000).
    * **Express API Server**: `http://localhost:5000`
-
----
-
-## 🔒 Security & Best Practices
-
-- **Zero Hardcoded Credentials**: No database secrets or SMTP passwords are hardcoded in the codebase. Landlords config their own SMTP server in the Settings UI panel.
-- **Isolated Namespaces**: All SQL-like JSON database records are isolated by checking the `x-landlord-id` request header. A landlord can never read or write another landlord's data.
-- **Non-Privileged User**: The production Docker image uses `USER node` to prevent root-privilege escalation inside the container.
-- **Defensive Scraper**: The Cheerio web scraper will catch WAF / Cloudflare blocks gracefully, logging warnings and prompting the user in the UI to input rates manually rather than throwing unhandled exceptions.
 
 ---
 
