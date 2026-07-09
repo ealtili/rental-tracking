@@ -296,23 +296,34 @@ landlord1TenantsData.forEach((t, index) => {
     ]
   });
 
-  // Pre-seed JEs & flat ledger entries for previous months
-  // Randomize payment days around the due day (startDay)
-  const payDayOffset1 = Math.floor(Math.random() * 7) - 3; // -3 to +3
-  const pDate1 = new Date(2026, 3, startDay + payDayOffset1); // April
-  const payDateStr1 = pDate1.toISOString().split('T')[0];
-
-  const payDayOffset2 = Math.floor(Math.random() * 7) - 3;
-  const pDate2 = new Date(2026, 4, startDay + payDayOffset2); // May
-  const payDateStr2 = pDate2.toISOString().split('T')[0];
-
-  const chargeDateStr1 = `2026-04-${String(startDay).padStart(2, '0')}`;
-  const chargeDateStr2 = `2026-05-${String(startDay).padStart(2, '0')}`;
-
-  const months = [
-    { period: '2026-04-01', chargeDate: chargeDateStr1, payDate: payDateStr1 },
-    { period: '2026-05-01', chargeDate: chargeDateStr2, payDate: payDateStr2 }
-  ];
+  // Dynamically generate all historical charges/payments from start of lease up to May 2026 to reflect reality
+  const months = [];
+  let currYear = sDate.getFullYear();
+  let currMonth = sDate.getMonth();
+  while (true) {
+    if (currYear > 2026 || (currYear === 2026 && currMonth > 4)) {
+      break;
+    }
+    
+    const periodStr = `${currYear}-${String(currMonth + 1).padStart(2, '0')}-01`;
+    const chargeDateStr = `${currYear}-${String(currMonth + 1).padStart(2, '0')}-${String(startDay).padStart(2, '0')}`;
+    
+    const payDayOffset = Math.floor(Math.random() * 5); // 0 to 4 days after due day
+    const pDate = new Date(currYear, currMonth, startDay + payDayOffset);
+    const payDateStr = pDate.toISOString().split('T')[0];
+    
+    months.push({
+      period: periodStr,
+      chargeDate: chargeDateStr,
+      payDate: payDateStr
+    });
+    
+    currMonth++;
+    if (currMonth > 11) {
+      currMonth = 0;
+      currYear++;
+    }
+  }
 
   months.forEach((m, mIdx) => {
     const payId = `pay-seed-${index}-${mIdx}`;
@@ -477,23 +488,34 @@ database.leases.push({
   ]
 });
 
-// Seed data for Bob
-// Randomize Bob's payment days around due day (1)
-const bobPayDayOffset1 = Math.floor(Math.random() * 5); // 0 to 4 days after due day
-const bobPDate1 = new Date(2026, 3, bobStartDay + bobPayDayOffset1);
-const bobPayDateStr1 = bobPDate1.toISOString().split('T')[0];
-
-const bobPayDayOffset2 = Math.floor(Math.random() * 5);
-const bobPDate2 = new Date(2026, 4, bobStartDay + bobPayDayOffset2);
-const bobPayDateStr2 = bobPDate2.toISOString().split('T')[0];
-
-const bobChargeDateStr1 = `2026-04-${String(bobStartDay).padStart(2, '0')}`;
-const bobChargeDateStr2 = `2026-05-${String(bobStartDay).padStart(2, '0')}`;
-
-const landlord2Months = [
-  { period: '2026-04-01', chargeDate: bobChargeDateStr1, payDate: bobPayDateStr1 },
-  { period: '2026-05-01', chargeDate: bobChargeDateStr2, payDate: bobPayDateStr2 }
-];
+// Seed data for Bob (dynamically generate all historical charges/payments from start of lease up to May 2026)
+const landlord2Months = [];
+let bYear = bobSDate.getFullYear();
+let bMonth = bobSDate.getMonth();
+while (true) {
+  if (bYear > 2026 || (bYear === 2026 && bMonth > 4)) {
+    break;
+  }
+  
+  const periodStr = `${bYear}-${String(bMonth + 1).padStart(2, '0')}-01`;
+  const chargeDateStr = `${bYear}-${String(bMonth + 1).padStart(2, '0')}-${String(bobStartDay).padStart(2, '0')}`;
+  
+  const payDayOffset = Math.floor(Math.random() * 5); // 0 to 4 days after due day
+  const pDate = new Date(bYear, bMonth, bobStartDay + payDayOffset);
+  const payDateStr = pDate.toISOString().split('T')[0];
+  
+  landlord2Months.push({
+    period: periodStr,
+    chargeDate: chargeDateStr,
+    payDate: payDateStr
+  });
+  
+  bMonth++;
+  if (bMonth > 11) {
+    bMonth = 0;
+    bYear++;
+  }
+}
 
 landlord2Months.forEach((m, mIdx) => {
   const payId = `pay-seed-2-${mIdx}`;
