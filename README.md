@@ -21,7 +21,10 @@ A containerized, multi-landlord rental tracking web application designed to run 
 
 ## 🔒 Security Hardening
 
-- **Memory-Hard Password Hashing**: Upgraded from legacy SHA-256 to Node's native `crypto.scryptSync` key derivation algorithm, securing accounts against GPU brute-force cracking.
+- **Transparent Database Encryption (TDE)**: Landlord-specific database JSON files (`landlord_<id>.json`) are encrypted at rest using **AES-256-GCM** authenticated encryption, rendering stored files completely unreadable if offline backups or physical storage are compromised.
+- **Strict Production Key Validation**: If `NODE_ENV=production` is set, the server strictly validates encryption keys and initialization vectors. If any parameters are missing or insecure, the server prints a fatal error and terminates the process immediately.
+- **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
+- **Memory-Hard Password Hashing**: Password hashing utilizes Node's native `crypto.scryptSync` key derivation algorithm, securing accounts against GPU brute-force cracking.
 - **Path Traversal Sanitization**: All file interactions and auth headers pass through a strict regex-based whitelister (`/^(landlord|admin)-[a-zA-Z0-9_-]+$/`), protecting host files against directory traversal attempts.
 - **SMTP Credential Encryption**: Landlord SMTP passwords are encrypted at rest using AES-256-CBC and decrypted on-the-fly when sending emails, protecting SMTP keys stored in global settings.
 - **Native HTTP Security Headers**: Lightweight custom middleware injecting secure headers:

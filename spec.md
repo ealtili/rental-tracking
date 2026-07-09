@@ -10,7 +10,7 @@ A multi-landlord rental tracking web application designed to automate bank state
 ## 🏗️ Technical Architecture & Stack
 
 - **Frontend**: Single Page Application (SPA) built with **Vite + Vanilla JS & CSS**.
-  - Modern, premium visual layout using CSS variables, a responsive layout, sleek dark-mode glassmorphism, and smooth micro-animations.
+  - Modern, premium visual layout using CSS variables, a responsive layout, sleek dark-mode glassmorphic design, and smooth micro-animations.
   - Custom browser tab favicon using a brand-colored vector SVG layout (`#6366f1` Indigo).
   - Visualization widgets on the dashboard tab:
     - **Rent Collection Trend Combo Chart**: Grouped expected/received columns with rounded caps, drop-shadows, dynamic dark/light theme-adaptive colors, a secondary Y-axis percentage line overlay, and a clean HTML legend. Shows the last 6 months to maintain layout breathing room.
@@ -29,11 +29,14 @@ A multi-landlord rental tracking web application designed to automate bank state
 1. **Broken Authentication Protection**: Strict token/header validation (`x-landlord-id` / `x-admin-id`) in middleware.
 2. **GPU Brute-Force Resistance**: Native `crypto.scryptSync` key derivation for secure, slow password hashing (64-byte outputs).
 3. **Directory Path Traversal Protection**: Regex-based whitelister matching format `/^(landlord|admin)-[a-zA-Z0-9_-]+$/` applied to all file lookup APIs.
-4. **Encryption at Rest**: AES-256-CBC encryption/decryption for landlord SMTP app passwords stored in `global.json`.
-5. **Native Security Headers**: Native middleware setting `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Content-Security-Policy`.
-6. **CORS Hardening**: Strict origin whitelisting matching frontend URL parameters.
-7. **Rate Limiting**: Custom memory-based IP rate-limiting restricting login and registration attempts (10 requests per 15 minutes).
-8. **Secure File Filters**: Excel `.xlsx` only restriction with $5\text{MB}$ size limit configuration.
+4. **Transparent Database Encryption (TDE)**: Landlord-specific database files are encrypted at rest using **AES-256-GCM** authenticated encryption. Read/write hooks (`readLandlordDb`/`writeLandlordDb`) automatically handle encryption/decryption on-the-fly.
+5. **Strict Production Key Validation**: If `NODE_ENV=production` is set, the server strictly validates encryption keys and initialization vectors. If any parameters are missing or insecure, the server prints a fatal error and terminates the process immediately.
+6. **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
+7. **Encryption at Rest for SMTP Credentials**: Landlord SMTP passwords are encrypted at rest using AES-256-CBC and decrypted on-the-fly when initializing the `nodemailer` transporter.
+8. **Native HTTP Security Headers**: Native middleware setting `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Content-Security-Policy`.
+9. **CORS Hardening**: Strict origin whitelisting matching frontend URL parameters.
+10. **Rate Limiting**: Custom memory-based IP rate-limiting restricting login and registration attempts (10 requests per 15 minutes).
+11. **Secure File Filters**: Excel `.xlsx` only restriction with $5\text{MB}$ size limit configuration.
 
 ---
 
@@ -96,7 +99,7 @@ The data persistence is split into global configurations and isolated files per 
       "name": "Hakan Yılmaz",
       "email": "hakan@yilmaz.com",
       "phone": "+905332222222",
-      "aliases": ["HAKAN YILMAZ", "HAKAN YILMAZ ALIAS"],
+      "aliases": ["HAKAN YILMAZ"],
       "linkedAccounts": ["Banka: 0067 SN: 2991148561"]
     }
   ],
@@ -195,3 +198,4 @@ Database initialization (`server/init-db.js`) fully randomizes and sets up a rea
 - **Distinct Start & End Dates**: To prevent calendar overlaps, contract end dates are offset by $-1$ day from their anniversary date.
 - **Unoccupied Portfolio Setup**: Seeds vacant units under active properties as well as completely unoccupied buildings to test vacancy tracking and doughnut visual segments.
 - **Continuous Historical Transactions**: Dynamically seeds monthly charges, matching ledger payments, and bank transactions starting from each lease's specific `startDate` up to **May 2026**. This ensures historical collections are fully paid ($100\%$ collection rate) and only current/future months remain outstanding, replicating a realistic operating environment.
+- **Immediate Seed Encryption**: The seeder dynamically encrypts all generated landlord JSON files upon writing, ensuring plaintext files are never saved onto raw disk volumes.

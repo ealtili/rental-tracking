@@ -16,6 +16,9 @@ This file defines the architecture, design guidelines, and developer rules for t
    - Every backend route that acts on landlord resources must enforce isolation by validating the `x-landlord-id` header. A landlord must never be allowed to read/write another landlord's file.
    - **Path Traversal Sanitizer**: All landlord/admin identifiers must be checked against a strict regex whitelist `/^(landlord|admin)-[a-zA-Z0-9_-]+$/` before accessing filesystem resources.
    - **Password Hashing**: Use secure scryptSync KDF for passwords. Never store plaintext credentials.
+   - **Transparent Database Encryption (TDE)**: All landlord-specific database JSON files must be encrypted at rest using standard **AES-256-GCM** authenticated encryption. Files are decrypted on-the-fly inside the reading hooks.
+   - **Production Key Validation**: If `NODE_ENV=production` is set, the server strictly validates database and SMTP encryption keys and initialization vectors. If any parameters are missing or invalid, the server prints a fatal error and terminates the process immediately.
+   - **Decrypted Database Reference**: Plaintext schema fixture committed at `docs/sample_landlord_db.json` for developer reference without touching active encrypted databases.
    - **SMTP App Passwords**: Must be encrypted using AES-256-CBC at rest inside JSON configs and decrypted on-the-fly when dispatching notifications.
    - **Security Headers & CORS**: Enforce native security headers (`nosniff`, `Frame-Options`, `XSS-Protection`, `CSP`) and restrict CORS whitelist scopes.
    - **Rate Limiting & Multer**: Apply brute-force login limits (10 attempts per 15 mins) and restrict file uploads to `.xlsx` files below $5\text{MB}$.
@@ -55,6 +58,7 @@ This file defines the architecture, design guidelines, and developer rules for t
    - Lease terms must support randomized durations (12, 18, 24 months) and distinct start/end dates (offset by $-1$ day on anniversary).
    - Seed vacant units and completely vacant properties to split doughnut chart visual states.
    - Dynamically generate historical payment entries and bank transactions for every past month since lease start date up to May 2026 to ensure realistic KPIs and collection trends.
+   - **Immediate Seed Encryption**: The seeder dynamically encrypts all generated landlord JSON files upon writing, ensuring plaintext files are never saved onto raw disk volumes.
 
 ---
 
