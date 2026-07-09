@@ -10,9 +10,9 @@ if (!fs.existsSync(dataDir)) {
 
 const dbPath = path.join(dataDir, 'db.json');
 
-// Helper to hash password
+// Helper to hash password using secure scrypt (memory-hard key derivation)
 function hashPassword(password, salt) {
-  return crypto.createHash('sha256').update(password + salt).digest('hex');
+  return crypto.scryptSync(password, salt, 64).toString('hex');
 }
 
 const SALT = 'rental_tracker_salt_2026';

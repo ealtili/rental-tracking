@@ -8,10 +8,91 @@ const nodemailer = require('nodemailer');
 const { parseBankStatement, scrapeLatestTufe, parsePropertyUpload } = require('./helper');
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
 
-app.use(cors());
+// Secure Multer configuration
+const upload = multer({ 
+  dest: 'uploads/',
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext !== '.xlsx') {
+      return cb(new Error('Only Excel files (.xlsx) are allowed'));
+    }
+    cb(null, true);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// Configure secure CORS
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:5000'],
+  credentials: true
+}));
+
 app.use(express.json());
+
+// Native Security Headers Middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'");
+  next();
+});
+
+// Simple memory-based rate limiter for login attempts
+const loginAttempts = new Map();
+function loginRateLimiter(req, res, next) {
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const now = Date.now();
+  const attempt = loginAttempts.get(ip) || { count: 0, lastAttempt: 0 };
+
+  if (now - attempt.lastAttempt > 15 * 60 * 1000) {
+    attempt.count = 0;
+  }
+
+  if (attempt.count >= 10) {
+    return res.status(429).json({ error: 'Too many login attempts. Please try again after 15 minutes.' });
+  }
+
+  attempt.count++;
+  attempt.lastAttempt = now;
+  loginAttempts.set(ip, attempt);
+  next();
+}
+
+// AES-256 Encryption helpers for SMTP passwords
+const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
+const ENCRYPTION_KEY = process.env.SMTP_ENCRYPTION_KEY || 'a3c8f8b8a928ef23214b7e8d9c2e4a8b';
+const ENCRYPTION_IV = process.env.SMTP_ENCRYPTION_IV || 'f7e8a92b2345e67d';
+
+function encrypt(text) {
+  if (!text) return '';
+  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, Buffer.from(ENCRYPTION_KEY), Buffer.from(ENCRYPTION_IV));
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+}
+
+function decrypt(text) {
+  if (!text) return '';
+  try {
+    const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, Buffer.from(ENCRYPTION_KEY), Buffer.from(ENCRYPTION_IV));
+    let decrypted = decipher.update(text, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    console.error('Decryption failed, returning plain text:', err);
+    return text;
+  }
+}
+
+// Path Traversal Sanitizer for Landlord IDs
+function sanitizeLandlordId(id) {
+  if (!id || typeof id !== 'string') return null;
+  const match = id.match(/^(landlord|admin)-[a-zA-Z0-9_-]+$/);
+  return match ? match[0] : null;
+}
 
 // Serve built Vite frontend static files
 app.use(express.static(path.join(__dirname, '../dist')));
@@ -22,7 +103,9 @@ const dataDir = path.dirname(dbPath);
 const globalDbPath = path.join(dataDir, 'global.json');
 
 function getLandlordDbPath(landlordId) {
-  return path.join(dataDir, `landlord_${landlordId}.json`);
+  const sanitized = sanitizeLandlordId(landlordId);
+  if (!sanitized) throw new Error('Invalid Landlord ID format');
+  return path.join(dataDir, `landlord_${sanitized}.json`);
 }
 
 // Auto-initialize db files in volume if missing
@@ -164,9 +247,9 @@ function writeLandlordDb(landlordId, data) {
   }
 }
 
-// Security: Hash password
+// Security: Hash password using secure scrypt (memory-hard key derivation)
 function hashPassword(password, salt) {
-  return crypto.createHash('sha256').update(password + salt).digest('hex');
+  return crypto.scryptSync(password, salt, 64).toString('hex');
 }
 
 // Helper: Normalize names for fuzzy matching
@@ -427,9 +510,10 @@ function runCronServices(landlordId) {
 
 // Middleware: Authenticated requests must carry x-landlord-id
 function authenticateLandlord(req, res, next) {
-  const landlordId = req.headers['x-landlord-id'];
+  const rawId = req.headers['x-landlord-id'];
+  const landlordId = sanitizeLandlordId(rawId);
   if (!landlordId) {
-    return res.status(401).json({ error: 'Unauthorized: Missing x-landlord-id header' });
+    return res.status(401).json({ error: 'Unauthorized: Invalid or missing x-landlord-id header' });
   }
   const db = readGlobalDb();
   const landlord = db.landlords.find(l => l.id === landlordId);
@@ -450,7 +534,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Auth: Signup
-app.post('/api/auth/signup', (req, res) => {
+app.post('/api/auth/signup', loginRateLimiter, (req, res) => {
   const { name, email, password, phone } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -498,7 +582,7 @@ app.post('/api/auth/signup', (req, res) => {
 });
 
 // Auth: Login (handles both landlords and admins)
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', loginRateLimiter, (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Missing email or password' });
@@ -1740,7 +1824,7 @@ app.post('/api/settings/smtp', authenticateLandlord, (req, res) => {
   const db = readGlobalDb();
   const landlord = db.landlords.find(l => l.id === req.landlord.id);
   
-  landlord.smtpConfig = { host, port: parseInt(port), user, pass };
+  landlord.smtpConfig = { host, port: parseInt(port), user, pass: encrypt(pass) };
   writeGlobalDb(db);
   
   res.json({ success: true });
@@ -1760,13 +1844,14 @@ app.post('/api/notifications/send-direct', authenticateLandlord, async (req, res
   }
 
   try {
+    const decryptedPass = decrypt(landlord.smtpConfig.pass);
     const transporter = nodemailer.createTransport({
       host: landlord.smtpConfig.host,
       port: landlord.smtpConfig.port || 587,
       secure: landlord.smtpConfig.port === 465, // true for 465, false for other ports
       auth: {
         user: landlord.smtpConfig.user,
-        pass: landlord.smtpConfig.pass
+        pass: decryptedPass
       }
     });
 
@@ -1833,6 +1918,9 @@ app.post('/api/settings/cpi-fetch', authenticateLandlord, async (req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
+  if (err.name === 'MulterError' || (err.message && err.message.includes('Only Excel files'))) {
+    return res.status(400).json({ error: err.message });
+  }
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
